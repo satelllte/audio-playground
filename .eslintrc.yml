@@ -9,4 +9,6 @@ extends:
 
 rules:
   tailwindcss/classnames-order: 'off' # Handled by "prettier-plugin-tailwindcss"
-
+  '@typescript-eslint/no-array-delete': 'off' # Definition for the rule is missing
+  '@typescript-eslint/prefer-find': 'off' # Definition for the rule is missing
+  '@typescript-eslint/prefer-promise-reject-errors': 'off' # Definition for the rule is missing
