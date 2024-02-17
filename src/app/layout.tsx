@@ -2,8 +2,8 @@ import type {Metadata} from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'r3f',
-  description: 'A playground for react-three-fiber',
+  title: 'Tone',
+  description: 'A playground for Tone.js',
 };
 
 export default function RootLayout({

@@ -1,1 +1,0 @@
-export {Torus} from './Torus';

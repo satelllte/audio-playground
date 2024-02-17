@@ -10,9 +10,6 @@ on:
 
 jobs:
   ci:
-    permissions:
-      contents: read
-      deployments: write
     env:
       BUILD_DIRECTORY: out
     timeout-minutes: 5
@@ -24,12 +21,8 @@ jobs:
         uses: oven-sh/setup-bun@v1
       - name: Bun version
         run: bun --version
-      - name: Set up ClangFormat
-        run: |
-          sudo apt update
-          sudo apt install -y clang-format
-      - name: ClangFormat version
-        run: clang-format --version
+      - name: Node version
+        run: node --version
       - name: Install Bun dependencies
         run: bun install --frozen-lockfile
       - name: Test (types)
@@ -40,18 +33,8 @@ jobs:
         run: bun run test:lint
       - name: Test (formatting)
         run: bun run test:format
-      - name: Test (GLSL formatting)
-        run: ./glsl_format_test.sh
       - name: Build
         run: bun run build
-      - name: Publish to Cloudflare Pages
-        uses: cloudflare/pages-action@v1
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          projectName: r3f-satelllte
-          directory: ./${{env.BUILD_DIRECTORY}}
-          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
       - name: Upload static output artifact
         uses: actions/upload-artifact@v4
         with:

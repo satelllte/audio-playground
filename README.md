@@ -1,6 +1,6 @@
-# r3f
+# Tone
 
-A playground for [react-three-fiber](https://github.com/pmndrs/react-three-fiber/).
+A playground for [Tone.js](https://github.com/Tonejs/Tone.js).
 
 ## Prerequisites
 
