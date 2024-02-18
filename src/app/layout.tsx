@@ -2,8 +2,8 @@ import type {Metadata} from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Tone',
-  description: 'A playground for Tone.js',
+  title: 'Audio playground',
+  description: 'Web Audio API playground',
 };
 
 export default function RootLayout({

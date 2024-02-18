@@ -1,6 +1,6 @@
-# Tone
+# Audio playground
 
-A playground for [Tone.js](https://github.com/Tonejs/Tone.js).
+[Web Audio API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API) playground
 
 ## Prerequisites
 
