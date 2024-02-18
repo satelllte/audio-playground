@@ -74,7 +74,7 @@ export function Playground() {
 }
 
 const renderBuffer = async () => {
-  const total = 5;
+  const total = 1;
   // eslint-disable-next-line new-cap
   return Tone.Offline(({transport}) => {
     const now = 0;
@@ -86,9 +86,9 @@ const renderBuffer = async () => {
 
     transport.scheduleRepeat(
       (time) => {
-        osc.start(time).stop(time + 0.1);
+        osc.start(time).stop(time + 0.5);
       },
-      total / 10,
+      total / 4,
       now,
       now + total,
     );
