@@ -71,38 +71,33 @@ export function NativeOscillatorScene() {
 
     const ctx = getCanvasContext();
 
-    ctx.lineWidth = 1;
-    ctx.strokeStyle = '#00bb00';
-
     const {width} = ctx.canvas;
     const {height} = ctx.canvas;
 
-    const heightPadding = Math.round(height * 0.05);
+    const paddingY = Math.round(height * 0.05);
+
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = '#bb0000';
+    ctx.beginPath();
+    ctx.moveTo(0, paddingY);
+    ctx.lineTo(width, paddingY);
+    ctx.moveTo(0, height - paddingY);
+    ctx.lineTo(width, height - paddingY);
+    ctx.closePath();
+    ctx.stroke();
 
     const points = buffer.getChannelData(0); // Left channel only (for now)
 
+    ctx.strokeStyle = '#00bb00';
     ctx.beginPath();
-
-    /**
-     * NOTE!
-     * The draw is not optimized yet, it's just a quick and dirty way to visualize the buffer.
-     */
-    const sliceWidth = width / points.length;
-    let x = 0;
-    for (let i = 0; i < points.length; i++) {
-      const v = points[i] * 0.5 + 0.5;
-      const y = v * (height - heightPadding * 2) + heightPadding;
-
-      if (i === 0) {
-        ctx.moveTo(x, y);
-      } else {
-        ctx.lineTo(x, y);
-      }
-
-      x += sliceWidth;
+    for (let i = 0; i < width; i++) {
+      const v = points[Math.floor((i / width) * points.length)] * 0.5 + 0.5;
+      const y = v * (height - paddingY * 2) + paddingY;
+      if (i === 0) ctx.moveTo(i, y);
+      else ctx.lineTo(i, y);
     }
 
-    ctx.lineTo(width, height / 2);
+    ctx.closePath();
     ctx.stroke();
   };
 
@@ -191,7 +186,7 @@ export function NativeOscillatorScene() {
 }
 
 const renderOffline = async (): Promise<AudioBuffer> => {
-  const duration = 1;
+  const duration = 2;
   const offlineContext = new OfflineAudioContext(2, 44100 * duration, 44100);
 
   const now = offlineContext.currentTime;
