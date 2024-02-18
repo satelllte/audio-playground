@@ -63,7 +63,7 @@ export function NativeOscillatorScene() {
     ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
   };
 
-  const drawBufferOnCanvas = () => {
+  const drawBufferOnCanvas = async () => {
     const buffer = bufferRef.current;
     if (!buffer) return;
 
@@ -86,7 +86,9 @@ export function NativeOscillatorScene() {
     ctx.closePath();
     ctx.stroke();
 
-    const points = buffer.getChannelData(0); // Left channel only (for now)
+    const bufferDecimated = await decimate({buffer, factor: 100});
+    console.debug('bufferDecimated', bufferDecimated);
+    const points = bufferDecimated.getChannelData(0); // Left channel only (for now)
 
     ctx.strokeStyle = '#00bb00';
     ctx.beginPath();
@@ -111,7 +113,7 @@ export function NativeOscillatorScene() {
 
     bufferRef.current = await renderOffline();
 
-    drawBufferOnCanvas();
+    await drawBufferOnCanvas();
 
     setBufferReady(true);
     setBufferRendering(false);
@@ -202,6 +204,33 @@ const renderOffline = async (): Promise<AudioBuffer> => {
     oscillator.start(_now);
     oscillator.stop(_now + loopDuration / 2);
   }
+
+  return offlineContext.startRendering();
+};
+
+const decimate = async ({
+  buffer,
+  factor,
+}: {
+  buffer: AudioBuffer;
+  factor: number;
+}): Promise<AudioBuffer> => {
+  const {numberOfChannels} = buffer;
+  const {duration} = buffer;
+  const sampleRate = Math.max(3000, Math.round(buffer.sampleRate / factor));
+
+  const offlineContext = new OfflineAudioContext(
+    numberOfChannels,
+    sampleRate * duration,
+    sampleRate,
+  );
+
+  const bufferSource = new AudioBufferSourceNode(offlineContext, {buffer});
+  bufferSource.connect(offlineContext.destination);
+
+  const now = offlineContext.currentTime;
+  bufferSource.start(now);
+  bufferSource.stop(now + duration);
 
   return offlineContext.startRendering();
 };
