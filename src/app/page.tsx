@@ -1,14 +1,21 @@
-import {Playground} from '@/components/pages/Playground';
+import {Heading} from '@/components/ui/Heading';
+import Link from 'next/link';
 
 export default function () {
   return (
-    <div>
-      <h1 className='p-4 text-2xl font-bold sm:p-8 sm:text-4xl'>
-        Audio playground
-      </h1>
-      <div className='px-4 sm:px-8'>
-        <Playground />
+    <>
+      <Heading level={2}>Scenes:</Heading>
+      <div className='flex flex-col gap-1 pt-2'>
+        <SceneLink path='/scenes/tone/beeps' />
       </div>
-    </div>
+    </>
+  );
+}
+
+function SceneLink({path}: {readonly path: string}) {
+  return (
+    <Link href={path} className='underline'>
+      {path}
+    </Link>
   );
 }

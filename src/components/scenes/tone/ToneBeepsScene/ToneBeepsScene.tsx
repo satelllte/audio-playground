@@ -3,7 +3,7 @@ import * as Tone from 'tone';
 import {useRef, useState} from 'react';
 import {Button} from '@/components/ui/Button';
 
-export function Playground() {
+export function ToneBeepsScene() {
   const bufferRef = useRef<Tone.ToneAudioBuffer>();
   const [bufferReady, setBufferReady] = useState(false);
   const [bufferRendering, setBufferRendering] = useState(false);
@@ -86,7 +86,7 @@ const renderBuffer = async () => {
 
     transport.scheduleRepeat(
       (time) => {
-        osc.start(time).stop(time + 0.5);
+        osc.start(time).stop(time + 0.1);
       },
       total / 4,
       now,
