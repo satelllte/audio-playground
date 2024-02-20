@@ -193,20 +193,88 @@ export function NativeOscillatorScene() {
 const renderOffline = async (): Promise<AudioBuffer> => {
   const duration = 1;
   const offlineContext = new OfflineAudioContext(2, 44100 * duration, 44100);
-
   const now = offlineContext.currentTime;
-  const loopCount = Math.round(Math.random() * 9) + 1;
+  const loopCount = 2;
   const loopDuration = duration / loopCount;
+  const adsrAttackTime = 0.05;
+  const adsrDecayTime = 0.1;
+  const adsrSustainLevel = 0.8;
+  const adsrReleaseTime = 0.1;
   for (let i = 0; i < loopCount; i++) {
     const _now = now + loopDuration * i;
+    const _duration = loopDuration / 2;
+
     const oscillator = new OscillatorNode(offlineContext, {
       frequency: 110,
       type: 'sine',
     });
-    oscillator.connect(offlineContext.destination);
+    const gain = new GainNode(offlineContext, {gain: 1});
+    const adsr = new ADSREnvelope({
+      attackTime: adsrAttackTime,
+      decayTime: adsrDecayTime,
+      sustainLevel: adsrSustainLevel,
+      releaseTime: adsrReleaseTime,
+    });
+
+    oscillator.connect(gain);
+    gain.connect(offlineContext.destination);
+
     oscillator.start(_now);
-    oscillator.stop(_now + loopDuration / 2);
+    oscillator.stop(_now + _duration + adsrReleaseTime);
+    adsr.run({startTime: _now, duration: _duration, param: gain.gain});
+
+    oscillator.onended = () => {
+      oscillator.disconnect(gain);
+      gain.disconnect(offlineContext.destination);
+    };
   }
 
   return offlineContext.startRendering();
 };
+
+// eslint-disable-next-line @typescript-eslint/naming-convention
+class ADSREnvelope {
+  private readonly _attackTime: number;
+  private readonly _decayTime: number;
+  private readonly _sustainLevel: number;
+  private readonly _releaseTime: number;
+
+  constructor({
+    attackTime,
+    decayTime,
+    sustainLevel,
+    releaseTime,
+  }: {
+    attackTime: number;
+    decayTime: number;
+    sustainLevel: number;
+    releaseTime: number;
+  }) {
+    this._attackTime = attackTime;
+    this._decayTime = decayTime;
+    this._sustainLevel = sustainLevel;
+    this._releaseTime = releaseTime;
+  }
+
+  run({
+    startTime,
+    duration,
+    param,
+  }: {
+    startTime: number;
+    duration: number;
+    param: AudioParam;
+  }) {
+    param.setValueAtTime(0, startTime);
+    param.linearRampToValueAtTime(1, startTime + this._attackTime);
+    param.linearRampToValueAtTime(
+      this._sustainLevel,
+      startTime + this._attackTime + this._decayTime,
+    );
+    param.setValueAtTime(this._sustainLevel, startTime + duration);
+    param.exponentialRampToValueAtTime(
+      0.001,
+      startTime + duration + this._releaseTime,
+    );
+  }
+}
