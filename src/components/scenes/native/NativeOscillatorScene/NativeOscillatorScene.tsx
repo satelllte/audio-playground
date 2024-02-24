@@ -1,9 +1,17 @@
 'use client';
-import {useEffect, useRef, useState} from 'react';
+import {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from 'react';
 import {Button} from '@/components/ui/Button';
+import {downsample, renderAudio} from './audio';
+import {clearCanvas, drawWaveformOnCanvas, resizeCanvas} from './canvas';
 
 export function NativeOscillatorScene() {
-  const contextRef = useRef<AudioContext>();
+  const contextRef = useAudioContextRef();
 
   const canvasRef = useRef<React.ElementRef<'canvas'>>(null);
 
@@ -13,40 +21,6 @@ export function NativeOscillatorScene() {
 
   const bufferSourceRef = useRef<AudioBufferSourceNode>();
   const [bufferSourcePlaying, setBufferSourcePlaying] = useState(false);
-
-  useEffect(() => {
-    contextRef.current = new AudioContext();
-    return () => {
-      if (!contextRef.current) return;
-      void contextRef.current.close();
-      contextRef.current = undefined;
-    };
-  }, []);
-
-  useEffect(() => {
-    const resizeCanvas = () => {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-
-      const {width, height} = canvas.getBoundingClientRect();
-      const ratio = Math.max(2, window.devicePixelRatio);
-      canvas.width = Math.floor(width * ratio);
-      canvas.height = Math.floor(height * ratio);
-
-      console.debug('canvas resized to: ', {
-        width: canvas.width,
-        height: canvas.height,
-      });
-    };
-
-    resizeCanvas();
-
-    window.addEventListener('resize', resizeCanvas);
-
-    return () => {
-      window.removeEventListener('resize', resizeCanvas);
-    };
-  }, []);
 
   const getCanvasContext = () => {
     const canvas = canvasRef.current;
@@ -58,73 +32,32 @@ export function NativeOscillatorScene() {
     return ctx2d;
   };
 
-  const clearCanvas = () => {
-    const ctx = getCanvasContext();
-    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-  };
-
-  const drawBufferOnCanvas = () => {
+  const drawWaveform = async () => {
     const buffer = bufferRef.current;
     if (!buffer) return;
 
-    clearCanvas();
-
     const ctx = getCanvasContext();
+    clearCanvas({ctx});
 
-    ctx.lineWidth = 1;
-    ctx.strokeStyle = '#00bb00';
-
-    const {width} = ctx.canvas;
-    const {height} = ctx.canvas;
-
-    const heightPadding = Math.round(height * 0.05);
-
-    const points = buffer.getChannelData(0); // Left channel only (for now)
-
-    ctx.beginPath();
-
-    /**
-     * NOTE!
-     * The draw is not optimized yet, it's just a quick and dirty way to visualize the buffer.
-     */
-    const sliceWidth = width / points.length;
-    let x = 0;
-    for (let i = 0; i < points.length; i++) {
-      const v = points[i] * 0.5 + 0.5;
-      const y = v * (height - heightPadding * 2) + heightPadding;
-
-      if (i === 0) {
-        ctx.moveTo(x, y);
-      } else {
-        ctx.lineTo(x, y);
-      }
-
-      x += sliceWidth;
-    }
-
-    ctx.lineTo(width, height / 2);
-    ctx.stroke();
+    const downsampledBuffer = await downsample({buffer});
+    const points = downsampledBuffer.getChannelData(0); // Using only left channel for now
+    drawWaveformOnCanvas({ctx, points});
   };
 
   const render = async () => {
-    const startMs = performance.now();
-
     setBufferReady(false);
     setBufferRendering(true);
 
-    clearCanvas();
+    const ctx = getCanvasContext();
+    clearCanvas({ctx});
 
-    bufferRef.current = await renderOffline();
+    const buffer = await renderAudio();
+    bufferRef.current = buffer;
 
-    drawBufferOnCanvas();
+    await drawWaveform();
 
     setBufferReady(true);
     setBufferRendering(false);
-
-    console.debug(
-      `Rendered buffer in ${performance.now() - startMs}ms: `,
-      bufferRef.current,
-    );
   };
 
   const play = async () => {
@@ -180,33 +113,58 @@ export function NativeOscillatorScene() {
       <Button disabled={!bufferSourcePlaying} onClick={stop}>
         Stop
       </Button>
-      <canvas
-        ref={canvasRef}
-        className='border border-gray-400'
-        width={400}
-        height={200}
-      />
+      <div className='relative box-border h-48 w-full border-2 border-white/50'>
+        <Canvas ref={canvasRef} />
+      </div>
     </div>
   );
 }
 
-const renderOffline = async (): Promise<AudioBuffer> => {
-  const duration = 1;
-  const offlineContext = new OfflineAudioContext(2, 44100 * duration, 44100);
+const useAudioContextRef = () => {
+  const contextRef = useRef<AudioContext>();
 
-  const now = offlineContext.currentTime;
-  const loopCount = Math.round(Math.random() * 9) + 1;
-  const loopDuration = duration / loopCount;
-  for (let i = 0; i < loopCount; i++) {
-    const _now = now + loopDuration * i;
-    const oscillator = new OscillatorNode(offlineContext, {
-      frequency: 110,
-      type: 'sine',
-    });
-    oscillator.connect(offlineContext.destination);
-    oscillator.start(_now);
-    oscillator.stop(_now + loopDuration / 2);
-  }
+  useEffect(() => {
+    contextRef.current = new AudioContext();
+    return () => {
+      if (!contextRef.current) return;
+      void contextRef.current.close();
+      contextRef.current = undefined;
+    };
+  }, []);
 
-  return offlineContext.startRendering();
+  return contextRef;
 };
+
+type NativeCanvasProps = React.ComponentProps<'canvas'>;
+type CanvasProps = Omit<NativeCanvasProps, 'className' | 'width' | 'height'>;
+const Canvas = forwardRef<HTMLCanvasElement, CanvasProps>(
+  (props, forwardedRef) => {
+    const ref = useRef<React.ElementRef<'canvas'>>(null);
+
+    useImperativeHandle(forwardedRef, () => {
+      const canvas = ref.current;
+      if (!canvas) throw new TypeError('Canvas ref is not set');
+      return canvas;
+    });
+
+    useEffect(() => {
+      const _resizeCanvas = () => {
+        const canvas = ref.current;
+        if (!canvas) return;
+        resizeCanvas({canvas});
+      };
+
+      _resizeCanvas();
+
+      window.addEventListener('resize', _resizeCanvas);
+
+      return () => {
+        window.removeEventListener('resize', _resizeCanvas);
+      };
+    }, []);
+
+    return (
+      <canvas ref={ref} className='absolute inset-0 size-full' {...props} />
+    );
+  },
+);
