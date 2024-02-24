@@ -7,6 +7,8 @@ import {
   useState,
 } from 'react';
 import {Button} from '@/components/ui/Button';
+import {audioBufferToWavBlob} from '@/utils/audioBufferToWavBlob';
+import {downloadBlob} from '@/utils/downloadBlob';
 import {downsample, renderAudio} from './audio';
 import {clearCanvas, drawWaveformOnCanvas, resizeCanvas} from './canvas';
 
@@ -102,6 +104,14 @@ export function NativeOscillatorScene() {
     source.stop(now);
   };
 
+  const download = () => {
+    const buffer = bufferRef.current;
+    if (!buffer) return;
+
+    const blob = audioBufferToWavBlob(buffer);
+    downloadBlob(blob, 'rendered-audio.wav');
+  };
+
   return (
     <div className='flex flex-col gap-2'>
       <Button
@@ -115,6 +125,12 @@ export function NativeOscillatorScene() {
       </Button>
       <Button disabled={!bufferSourcePlaying} onClick={stop}>
         Stop
+      </Button>
+      <Button
+        disabled={!bufferReady || bufferRendering || bufferSourcePlaying}
+        onClick={download}
+      >
+        Download
       </Button>
       <div className='relative box-border h-48 w-full border-2 border-white/50'>
         <Canvas ref={canvasRef} />
