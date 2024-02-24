@@ -15,8 +15,10 @@ export default function () {
 
 function SceneLink({path}: {readonly path: string}) {
   return (
-    <Link href={path} className='underline'>
-      {path}
-    </Link>
+    <div>
+      <Link href={path} className='underline'>
+        {path}
+      </Link>
+    </div>
   );
 }
