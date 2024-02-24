@@ -12,40 +12,49 @@ export const clearCanvas = ({ctx}: {ctx: CanvasRenderingContext2D}): void => {
 
 export const drawWaveformOnCanvas = ({
   ctx,
-  points,
+  pointsL,
+  pointsR,
 }: {
   ctx: CanvasRenderingContext2D;
-  points: Float32Array;
+  pointsL: Float32Array;
+  pointsR: Float32Array;
 }): void => {
+  if (pointsL.length !== pointsR.length) {
+    throw new TypeError('left and right channel points length must be equal');
+  }
+
   const startMs = performance.now();
 
   const {width, height} = ctx.canvas;
 
-  const paddingY = Math.round(height * 0.05);
-
-  ctx.lineWidth = 1;
-  ctx.strokeStyle = '#bb0000';
-  ctx.beginPath();
-  ctx.moveTo(0, paddingY);
-  ctx.lineTo(width, paddingY);
-  ctx.moveTo(0, height - paddingY);
-  ctx.lineTo(width, height - paddingY);
-  ctx.closePath();
-  ctx.stroke();
-
   ctx.strokeStyle = '#ffffff';
-  const chunkSize = Math.round(points.length / width);
+  const chunkSize = Math.round(pointsL.length / width);
   for (let i = 0; i < width; i++) {
-    let min = 0;
-    let max = 0;
+    let minL = 0;
+    let maxL = 0;
+    let minR = 0;
+    let maxR = 0;
     for (let j = i * chunkSize; j < (i + 1) * chunkSize; j++) {
-      min = Math.min(min, points[j]);
-      max = Math.max(max, points[j]);
+      minL = Math.min(minL, pointsL[j]);
+      maxL = Math.max(maxL, pointsL[j]);
+      minR = Math.min(minR, pointsR[j]);
+      maxR = Math.max(maxR, pointsR[j]);
     }
 
+    minL = Math.max(-1, minL);
+    maxL = Math.min(1, maxL);
+    minR = Math.max(-1, minR);
+    maxR = Math.min(1, maxL);
+
     ctx.beginPath();
-    ctx.moveTo(i, (min * 0.5 + 0.5) * (height - paddingY * 2) + paddingY);
-    ctx.lineTo(i, (max * 0.5 + 0.5) * (height - paddingY * 2) + paddingY);
+    ctx.moveTo(i, (minL * 0.25 + 0.25) * height);
+    ctx.lineTo(i, (maxL * 0.25 + 0.25) * height);
+    ctx.closePath();
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(i, (minR * 0.25 + 0.75) * height);
+    ctx.lineTo(i, (maxR * 0.25 + 0.75) * height);
     ctx.closePath();
     ctx.stroke();
   }
