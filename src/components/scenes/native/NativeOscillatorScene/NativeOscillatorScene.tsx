@@ -40,8 +40,11 @@ export function NativeOscillatorScene() {
     clearCanvas({ctx});
 
     const downsampledBuffer = await downsample({buffer});
-    const points = downsampledBuffer.getChannelData(0); // Using only left channel for now
-    drawWaveformOnCanvas({ctx, points});
+    drawWaveformOnCanvas({
+      ctx,
+      pointsL: downsampledBuffer.getChannelData(0),
+      pointsR: downsampledBuffer.getChannelData(1),
+    });
   };
 
   const render = async () => {

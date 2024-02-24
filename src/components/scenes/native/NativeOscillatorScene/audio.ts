@@ -8,15 +8,31 @@ export const renderAudio = async (): Promise<AudioBuffer> => {
   const loopDuration = duration / loopCount;
   for (let i = 0; i < loopCount; i++) {
     const _now = now + loopDuration * i;
+
     const oscillator = new OscillatorNode(offlineContext, {
       frequency: 110,
-      type: 'sine',
+      type: 'triangle',
     });
-    oscillator.connect(offlineContext.destination);
+    const filter = new BiquadFilterNode(offlineContext, {
+      type: 'lowpass',
+      frequency: 110,
+    });
+
+    oscillator.connect(filter);
+    filter.connect(offlineContext.destination);
+
     oscillator.start(_now);
     oscillator.stop(_now + loopDuration / 2);
+    filter.frequency.setValueAtTime(110, _now);
+    filter.frequency.exponentialRampToValueAtTime(
+      110 * 32,
+      _now + loopDuration / 4,
+    );
+    filter.frequency.exponentialRampToValueAtTime(110, _now + loopDuration / 2);
+
     oscillator.onended = () => {
-      oscillator.disconnect(offlineContext.destination);
+      oscillator.disconnect(filter);
+      filter.disconnect(offlineContext.destination);
     };
   }
 
