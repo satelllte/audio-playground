@@ -28,6 +28,10 @@ jobs:
         run: node --version
       - name: Install Bun dependencies
         run: bun install --frozen-lockfile
+      - name: Playwright version
+        run: bunx playwright --version
+      - name: Install Playwright browsers
+        run: bunx playwright install --with-deps
       - name: Test (types)
         run: bun run test:types
       - name: Test (units)
@@ -38,6 +42,13 @@ jobs:
         run: bun run test:format
       - name: Build
         run: bun run build
+      - name: Render audio
+        run: bun run render:audio
+      - name: Upload renders artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: renders
+          path: ./playwright-artifacts
       - name: Publish to Cloudflare Pages
         uses: cloudflare/pages-action@v1
         with:

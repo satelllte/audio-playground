@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "serve out",
+    "render:audio": "bun run ./scripts/render-audio",
     "test:types": "tsc",
     "test:units": "echo 'No tests yet' && exit 0 && vitest",
     "test:lint": "next lint --max-warnings=0 --format=compact",
