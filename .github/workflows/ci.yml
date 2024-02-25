@@ -8,13 +8,14 @@ on:
     branches:
       - main
 
+env:
+  BUILD_DIRECTORY: out
+
 jobs:
-  ci:
+  ci-test-deploy:
     permissions:
       contents: read
       deployments: write
-    env:
-      BUILD_DIRECTORY: out
     timeout-minutes: 5
     runs-on: ubuntu-latest
     steps:
@@ -51,3 +52,34 @@ jobs:
         with:
           name: web
           path: ./${{env.BUILD_DIRECTORY}}
+  ci-render:
+    needs: [ci-test-deploy]
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v1
+      - name: Bun version
+        run: bun --version
+      - name: Node version
+        run: node --version
+      - name: Install Bun dependencies
+        run: bun install --frozen-lockfile
+      - name: Playwright version
+        run: bunx playwright --version
+      - name: Install Playwright browsers
+        run: bunx playwright install --with-deps
+      - name: Download static output artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: web
+          path: ./${{env.BUILD_DIRECTORY}}
+      - name: Render audio
+        run: bun run render:audio
+      - name: Upload renders artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: renders
+          path: ./playwright-artifacts
