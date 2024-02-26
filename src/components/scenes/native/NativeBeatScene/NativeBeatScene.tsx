@@ -6,8 +6,6 @@ export function NativeBeatScene() {
 }
 
 const renderAudio = async (): Promise<AudioBuffer> => {
-  const startMs = performance.now();
-
   const duration = 1;
   const offlineContext = new OfflineAudioContext(2, 44100 * duration, 44100);
   const now = offlineContext.currentTime;
@@ -26,11 +24,5 @@ const renderAudio = async (): Promise<AudioBuffer> => {
     oscillator.disconnect(offlineContext.destination);
   };
 
-  const buffer = await offlineContext.startRendering();
-  const diffMs = performance.now() - startMs;
-  console.info(
-    `[renderAudio] rendered buffer in ${diffMs.toFixed(3)}ms: `,
-    buffer,
-  );
-  return buffer;
+  return offlineContext.startRendering();
 };

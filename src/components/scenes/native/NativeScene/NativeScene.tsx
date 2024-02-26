@@ -71,7 +71,13 @@ export function NativeScene({downloadFileName, renderAudio}: NativeSceneProps) {
     const ctx = getCanvasContext();
     clearCanvas({ctx});
 
+    const startMs = performance.now();
     const buffer = await renderAudio();
+    const diffMs = performance.now() - startMs;
+    console.info(
+      `[renderAudio] rendered buffer in ${diffMs.toFixed(3)}ms: `,
+      buffer,
+    );
     bufferRef.current = buffer;
 
     await drawWaveform();
