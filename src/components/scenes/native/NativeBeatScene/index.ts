@@ -1,0 +1,1 @@
+export {NativeBeatScene} from './NativeBeatScene';

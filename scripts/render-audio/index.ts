@@ -1,4 +1,4 @@
-import {chromium} from 'playwright';
+import {type Page, chromium} from 'playwright';
 import child_process from 'node:child_process';
 
 logInfo('Starting webpage server');
@@ -35,8 +35,16 @@ const render = async (baseUrl: string) => {
   logInfo('Creating browser page instance');
   const page = await browser.newPage();
 
-  logInfo('Going to page');
-  await page.goto(`${baseUrl}/scenes/native/oscillator`);
+  await renderScene({path: `${baseUrl}/scenes/native/beat`, page});
+  await renderScene({path: `${baseUrl}/scenes/native/oscillator`, page});
+
+  logInfo('Closing browser instance');
+  await browser.close();
+};
+
+async function renderScene({path, page}: {path: string; page: Page}) {
+  logInfo('Going to page at path: ', path);
+  await page.goto(path);
 
   logInfo('Rendering audio');
   await page.getByRole('button', {name: 'Render'}).click();
@@ -46,14 +54,10 @@ const render = async (baseUrl: string) => {
   await page.getByRole('button', {name: 'Download'}).click();
   const download = await downloadPromise;
 
-  logInfo('Saving audio file');
-  await download.saveAs(
-    './playwright-artifacts/' + download.suggestedFilename(),
-  );
-
-  logInfo('Closing browser instance');
-  await browser.close();
-};
+  const savePath = './playwright-artifacts/' + download.suggestedFilename();
+  logInfo('Saving audio file to: ', savePath);
+  await download.saveAs(savePath);
+}
 
 function logInfo(...messages: unknown[]) {
   console.info('\x1b[36m%s\x1b[0m', '[render audio]', ...messages);
