@@ -108,7 +108,7 @@ export function NativeScene({downloadFileName, renderAudio}: NativeSceneProps) {
     source.start(now);
     source.stop(now + buffer.duration);
     source.onended = () => {
-      source.disconnect(context.destination);
+      source.disconnect();
       bufferSourceRef.current = undefined;
       setBufferSourcePlaying(false);
     };
