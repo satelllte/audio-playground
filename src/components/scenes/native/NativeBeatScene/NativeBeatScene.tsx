@@ -5,9 +5,13 @@ export function NativeBeatScene() {
   return <NativeScene downloadFileName='beat.wav' renderAudio={renderAudio} />;
 }
 
-const renderAudio = async (): Promise<AudioBuffer> => {
+const renderAudio = async (sampleRate: number): Promise<AudioBuffer> => {
   const duration = 1;
-  const offlineContext = new OfflineAudioContext(2, 44100 * duration, 44100);
+  const offlineContext = new OfflineAudioContext(
+    2,
+    sampleRate * duration,
+    sampleRate,
+  );
   const now = offlineContext.currentTime;
 
   const oscillator = new OscillatorNode(offlineContext, {

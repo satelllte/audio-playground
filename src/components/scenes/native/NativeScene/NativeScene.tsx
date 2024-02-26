@@ -5,6 +5,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import {DEFAULT_SAMPLE_RATE} from '@/constants';
 import {Button} from '@/components/ui/Button';
 import {audioBufferToWavBlob} from '@/utils/audioBufferToWavBlob';
 import {downloadBlob} from '@/utils/downloadBlob';
@@ -20,7 +21,7 @@ type NativeSceneProps = {
   /**
    * A function that renders an audio buffer for the scene.
    */
-  readonly renderAudio: () => Promise<AudioBuffer>;
+  readonly renderAudio: (sampleRate: number) => Promise<AudioBuffer>;
 };
 
 export function NativeScene({downloadFileName, renderAudio}: NativeSceneProps) {
@@ -72,7 +73,7 @@ export function NativeScene({downloadFileName, renderAudio}: NativeSceneProps) {
     clearCanvas({ctx});
 
     const startMs = performance.now();
-    const buffer = await renderAudio();
+    const buffer = await renderAudio(DEFAULT_SAMPLE_RATE);
     const diffMs = performance.now() - startMs;
     console.info(
       `[renderAudio] rendered buffer in ${diffMs.toFixed(3)}ms: `,

@@ -7,9 +7,13 @@ export function NativeOscillatorScene() {
   );
 }
 
-const renderAudio = async (): Promise<AudioBuffer> => {
+const renderAudio = async (sampleRate: number): Promise<AudioBuffer> => {
   const duration = 2;
-  const offlineContext = new OfflineAudioContext(2, 44100 * duration, 44100);
+  const offlineContext = new OfflineAudioContext(
+    2,
+    sampleRate * duration,
+    sampleRate,
+  );
   const now = offlineContext.currentTime;
   const loopCount = 2;
   const loopDuration = duration / loopCount;
