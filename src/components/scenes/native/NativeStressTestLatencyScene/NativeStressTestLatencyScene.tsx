@@ -1,5 +1,6 @@
 'use client';
-import {useEffect, useRef, useState} from 'react';
+import {useEffect, useState} from 'react';
+import {useAudioContextRef} from '@/hooks/useAudioContextRef';
 import {Button} from '@/components/ui/Button';
 
 export function NativeStressTestLatencyScene() {
@@ -91,18 +92,3 @@ export function NativeStressTestLatencyScene() {
     </div>
   );
 }
-
-const useAudioContextRef = () => {
-  const contextRef = useRef<AudioContext>();
-
-  useEffect(() => {
-    contextRef.current = new AudioContext();
-    return () => {
-      if (!contextRef.current) return;
-      void contextRef.current.close();
-      contextRef.current = undefined;
-    };
-  }, []);
-
-  return contextRef;
-};
