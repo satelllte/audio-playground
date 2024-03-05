@@ -1,4 +1,5 @@
 import {Heading} from '@/components/ui/Heading';
+import {nativeScenes} from '@/constants';
 import Link from 'next/link';
 
 export default function () {
@@ -6,8 +7,9 @@ export default function () {
     <>
       <Heading level={2}>Scenes:</Heading>
       <div className='flex flex-col gap-1 pt-2'>
-        <SceneLink path='/scenes/native/beat' />
-        <SceneLink path='/scenes/native/oscillator' />
+        {nativeScenes.map((scene) => (
+          <SceneLink key={scene} path={`/scenes/native/${scene}`} />
+        ))}
         <SceneLink path='/scenes/tone/beeps' />
       </div>
     </>
