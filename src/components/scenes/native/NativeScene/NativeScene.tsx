@@ -6,6 +6,7 @@ import {
   useState,
 } from 'react';
 import {DEFAULT_SAMPLE_RATE} from '@/constants';
+import {useAudioContextRef} from '@/hooks/useAudioContextRef';
 import {Button} from '@/components/ui/Button';
 import {audioBufferToWavBlob} from '@/utils/audioBufferToWavBlob';
 import {downloadBlob} from '@/utils/downloadBlob';
@@ -160,21 +161,6 @@ export function NativeScene({downloadFileName, renderAudio}: NativeSceneProps) {
     </div>
   );
 }
-
-const useAudioContextRef = () => {
-  const contextRef = useRef<AudioContext>();
-
-  useEffect(() => {
-    contextRef.current = new AudioContext();
-    return () => {
-      if (!contextRef.current) return;
-      void contextRef.current.close();
-      contextRef.current = undefined;
-    };
-  }, []);
-
-  return contextRef;
-};
 
 type NativeCanvasProps = React.ComponentProps<'canvas'>;
 type CanvasProps = Omit<NativeCanvasProps, 'className' | 'width' | 'height'>;
