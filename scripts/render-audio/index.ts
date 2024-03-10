@@ -36,6 +36,7 @@ const render = async (baseUrl: string) => {
   const page = await browser.newPage();
 
   await renderScene({path: `${baseUrl}/scenes/native/beat`, page});
+  await renderScene({path: `${baseUrl}/scenes/native/params-demo`, page});
   await renderScene({path: `${baseUrl}/scenes/native/oscillator`, page});
 
   logInfo('Closing browser instance');
