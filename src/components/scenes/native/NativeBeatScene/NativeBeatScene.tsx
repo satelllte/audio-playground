@@ -7,8 +7,8 @@ export function NativeBeatScene() {
 }
 
 const renderAudio = async (sampleRate: number): Promise<AudioBuffer> => {
-  const tempo = 145;
-  const barsCount = 2;
+  const tempo = 154;
+  const barsCount = 8;
 
   const beatDuration = 60 / tempo;
   const barDuration = beatDuration * 4; // 4/4 time signature
@@ -23,7 +23,16 @@ const renderAudio = async (sampleRate: number): Promise<AudioBuffer> => {
     loop({
       context,
       startAt: now + barDuration * barIndex,
-      barDuration,
+      duration: barDuration,
+      samples,
+    });
+  }
+
+  for (let barIndex = 0; barIndex < barsCount; barIndex += 4) {
+    loop4({
+      context,
+      startAt: now + barDuration * barIndex,
+      duration: barDuration * 4,
       samples,
     });
   }
@@ -34,44 +43,60 @@ const renderAudio = async (sampleRate: number): Promise<AudioBuffer> => {
 const loop = ({
   context,
   startAt,
-  barDuration,
+  duration,
   samples,
 }: {
   context: BaseAudioContext;
   startAt: number;
-  barDuration: number;
+  duration: number;
   samples: Unpromisify<ReturnType<typeof fetchSamples>>;
 }): void => {
-  const durationEighth = barDuration / 8;
-
-  // Kick
-  [0, 1].forEach((i) => {
-    playSample({
-      context,
-      buffer: samples.kick,
-      startAt: startAt + durationEighth * i,
-      duration: samples.kick.duration,
-    });
-  });
-
-  // Snare
-  [4].forEach((i) => {
-    playSample({
-      context,
-      buffer: samples.snare,
-      startAt: startAt + durationEighth * i,
-      duration: samples.snare.duration,
-    });
-  });
+  const durationHalf = duration / 2;
+  const durationEighth = duration / 8;
 
   // Hi-hat
-  [0, 1, 2, 3, 4, 4.5, 5, 6, 7].forEach((i) => {
+  [0, 1, 2, 3, 4, 5, 6, 7].forEach((i) => {
     playSample({
       context,
       buffer: samples.hiHat,
       startAt: startAt + durationEighth * i,
       duration: samples.hiHat.duration,
+      gain: i % 2 ? 0.25 : 1.0,
     });
+  });
+
+  // Snare
+  playSample({
+    context,
+    buffer: samples.snare1,
+    startAt: startAt + durationHalf,
+    duration: samples.snare1.duration,
+  });
+  playSample({
+    context,
+    buffer: samples.snare2,
+    startAt: startAt + durationHalf,
+    duration: samples.snare2.duration,
+  });
+};
+
+const loop4 = ({
+  context,
+  startAt,
+  duration,
+  samples,
+}: {
+  context: BaseAudioContext;
+  startAt: number;
+  duration: number;
+  samples: Unpromisify<ReturnType<typeof fetchSamples>>;
+}): void => {
+  // Melody
+  playSample({
+    context,
+    buffer: samples.melodyLoop,
+    startAt,
+    duration,
   });
 };
 
@@ -80,14 +105,20 @@ const playSample = ({
   buffer,
   startAt,
   duration,
+  gain = 1.0,
 }: {
   context: BaseAudioContext;
   buffer: AudioBuffer;
   startAt: number;
   duration: number;
+  gain?: number;
 }): AudioBufferSourceNode => {
   const source = new AudioBufferSourceNode(context, {buffer});
-  source.connect(context.destination);
+  const gainNode = new GainNode(context, {gain});
+
+  source.connect(gainNode);
+  gainNode.connect(context.destination);
+
   source.start(startAt, 0, duration);
   source.onended = () => {
     source.disconnect();
@@ -98,12 +129,13 @@ const playSample = ({
 
 const fetchSamples = async (context: BaseAudioContext) => {
   const basePath = '/static/samples';
-  const [hiHat, kick, snare] = await Promise.all([
+  const [hiHat, melodyLoop, snare1, snare2] = await Promise.all([
     fetchAudioFile({path: `${basePath}/hi_hat_1.wav`, context}),
-    fetchAudioFile({path: `${basePath}/kick_1.wav`, context}),
+    fetchAudioFile({path: `${basePath}/melody_loop_1.wav`, context}),
     fetchAudioFile({path: `${basePath}/snare_1.wav`, context}),
+    fetchAudioFile({path: `${basePath}/snare_2.wav`, context}),
   ]);
-  return {hiHat, kick, snare};
+  return {hiHat, melodyLoop, snare1, snare2};
 };
 
 const fetchAudioFile = async ({
