@@ -61,7 +61,11 @@ const loop = ({
       buffer: samples.hiHat,
       startAt: startAt + duration8 * i,
       duration: samples.hiHat.duration,
-      gain: i % 2 ? 0.25 : 1.0,
+      process(source) {
+        const gain = new GainNode(context, {gain: i % 2 ? 0.25 : 1.0});
+        source.connect(gain);
+        gain.connect(context.destination);
+      },
     });
   });
 
@@ -71,12 +75,28 @@ const loop = ({
     buffer: samples.snare1,
     startAt: startAt + duration2,
     duration: samples.snare1.duration,
+    process(source) {
+      const highPass = new BiquadFilterNode(context, {
+        type: 'highpass',
+        frequency: 150,
+      });
+      source.connect(highPass);
+      highPass.connect(context.destination);
+    },
   });
   playSample({
     context,
     buffer: samples.snare2,
     startAt: startAt + duration2,
     duration: samples.snare2.duration,
+    process(source) {
+      const highPass = new BiquadFilterNode(context, {
+        type: 'highpass',
+        frequency: 150,
+      });
+      source.connect(highPass);
+      highPass.connect(context.destination);
+    },
   });
 };
 
@@ -99,22 +119,42 @@ const loop4 = ({
     buffer: samples.melodyLoop,
     startAt,
     duration,
+    process(source) {
+      const highPass = new BiquadFilterNode(context, {
+        type: 'highpass',
+        frequency: 425,
+      });
+      source.connect(highPass);
+      highPass.connect(context.destination);
+    },
   });
 
   // Kick
-  // prettier-ignore
-  [ 0+0,  0+1,  0+6,  0+7,  0+10,
-    16+0, 16+1, 16+6, 16+7, 16+10, 16+13].forEach(
-     (i) => {
-       playSample({
-         context,
-         buffer: samples.kick,
-         startAt: startAt + duration32 * i,
-         duration: samples.kick.duration * 0.5,
-         gain: 0.875,
-       });
-     },
-   );
+  [
+    0 + 0,
+    0 + 1,
+    0 + 6,
+    0 + 7,
+    0 + 10,
+    16 + 0,
+    16 + 1,
+    16 + 6,
+    16 + 7,
+    16 + 10,
+    16 + 13,
+  ].forEach((i) => {
+    playSample({
+      context,
+      buffer: samples.kick,
+      startAt: startAt + duration32 * i,
+      duration: samples.kick.duration * 0.5,
+      process(source) {
+        const gain = new GainNode(context, {gain: 0.875});
+        source.connect(gain);
+        gain.connect(context.destination);
+      },
+    });
+  });
 };
 
 const playSample = ({
@@ -122,24 +162,17 @@ const playSample = ({
   buffer,
   startAt,
   duration,
-  gain = 1.0,
+  process,
 }: {
   context: BaseAudioContext;
   buffer: AudioBuffer;
   startAt: number;
   duration: number;
-  gain?: number;
+  process: (source: AudioBufferSourceNode) => void;
 }): AudioBufferSourceNode => {
   const source = new AudioBufferSourceNode(context, {buffer});
-  const gainNode = new GainNode(context, {gain});
-
-  source.connect(gainNode);
-  gainNode.connect(context.destination);
-
+  process(source);
   source.start(startAt, 0, duration);
-  source.onended = () => {
-    source.disconnect();
-  };
 
   return source;
 };
