@@ -49,7 +49,7 @@ const loop = ({
   context: BaseAudioContext;
   startAt: number;
   duration: number;
-  samples: Unpromisify<ReturnType<typeof fetchSamples>>;
+  samples: Samples;
 }): void => {
   const durationHalf = duration / 2;
   const durationEighth = duration / 8;
@@ -89,7 +89,7 @@ const loop4 = ({
   context: BaseAudioContext;
   startAt: number;
   duration: number;
-  samples: Unpromisify<ReturnType<typeof fetchSamples>>;
+  samples: Samples;
 }): void => {
   // Melody
   playSample({
@@ -126,6 +126,8 @@ const playSample = ({
 
   return source;
 };
+
+type Samples = Unpromisify<ReturnType<typeof fetchSamples>>;
 
 const fetchSamples = async (context: BaseAudioContext) => {
   const basePath = '/static/samples';
