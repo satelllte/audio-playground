@@ -28,6 +28,15 @@ const renderAudio = async (sampleRate: number): Promise<AudioBuffer> => {
     });
   }
 
+  for (let barIndex = 0; barIndex < barsCount; barIndex += 2) {
+    loop2({
+      context,
+      startAt: now + barDuration * barIndex,
+      duration: barDuration * 2,
+      samples,
+    });
+  }
+
   for (let barIndex = 0; barIndex < barsCount; barIndex += 4) {
     loop4({
       context,
@@ -97,6 +106,42 @@ const loop = ({
       source.connect(highPass);
       highPass.connect(context.destination);
     },
+  });
+};
+
+const loop2 = ({
+  context,
+  startAt,
+  duration,
+  samples,
+}: {
+  context: BaseAudioContext;
+  startAt: number;
+  duration: number;
+  samples: Samples;
+}): void => {
+  const duration16 = duration / 16;
+
+  // Snare (extra)
+  [9].forEach((i) => {
+    playSample({
+      context,
+      buffer: samples.snareExtra1,
+      startAt: startAt + duration16 * i,
+      duration: samples.snareExtra1.duration,
+      process(source) {
+        source.connect(context.destination);
+      },
+    });
+    playSample({
+      context,
+      buffer: samples.snareExtra2,
+      startAt: startAt + duration16 * i,
+      duration: samples.snareExtra2.duration,
+      process(source) {
+        source.connect(context.destination);
+      },
+    });
   });
 };
 
@@ -181,14 +226,17 @@ type Samples = Unpromisify<ReturnType<typeof fetchSamples>>;
 
 const fetchSamples = async (context: BaseAudioContext) => {
   const basePath = '/static/samples';
-  const [hiHat, kick, melodyLoop, snare1, snare2] = await Promise.all([
-    fetchAudioFile({path: `${basePath}/hi_hat_1.wav`, context}),
-    fetchAudioFile({path: `${basePath}/kick_1.wav`, context}),
-    fetchAudioFile({path: `${basePath}/melody_loop_1.wav`, context}),
-    fetchAudioFile({path: `${basePath}/snare_1.wav`, context}),
-    fetchAudioFile({path: `${basePath}/snare_2.wav`, context}),
-  ]);
-  return {hiHat, kick, melodyLoop, snare1, snare2};
+  const [hiHat, kick, melodyLoop, snare1, snare2, snareExtra1, snareExtra2] =
+    await Promise.all([
+      fetchAudioFile({path: `${basePath}/hi_hat_1.wav`, context}),
+      fetchAudioFile({path: `${basePath}/kick_1.wav`, context}),
+      fetchAudioFile({path: `${basePath}/melody_loop_1.wav`, context}),
+      fetchAudioFile({path: `${basePath}/snare_1.wav`, context}),
+      fetchAudioFile({path: `${basePath}/snare_2.wav`, context}),
+      fetchAudioFile({path: `${basePath}/snare_extra_1.wav`, context}),
+      fetchAudioFile({path: `${basePath}/snare_extra_2.wav`, context}),
+    ]);
+  return {hiHat, kick, melodyLoop, snare1, snare2, snareExtra1, snareExtra2};
 };
 
 const fetchAudioFile = async ({
