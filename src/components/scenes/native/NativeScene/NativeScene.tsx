@@ -5,6 +5,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import clsx from 'clsx';
 import {DEFAULT_SAMPLE_RATE} from '@/constants';
 import {useAudioContextRef} from '@/hooks/useAudioContextRef';
 import {Button} from '@/components/ui/Button';
@@ -39,6 +40,7 @@ export function NativeScene({downloadFileName, renderAudio}: NativeSceneProps) {
   const [bufferRendering, setBufferRendering] = useState(false);
 
   const bufferSourceRef = useRef<AudioBufferSourceNode>();
+  const bufferSourceStartedAtRef = useRef<number>(0);
   const [bufferSourcePlaying, setBufferSourcePlaying] = useState(false);
 
   const getCanvasContext = () => {
@@ -106,10 +108,11 @@ export function NativeScene({downloadFileName, renderAudio}: NativeSceneProps) {
     source.connect(context.destination);
 
     const now = context.currentTime;
+    bufferSourceStartedAtRef.current = now;
     source.start(now);
     source.stop(now + buffer.duration);
     source.onended = () => {
-      source.disconnect();
+      bufferSourceRef.current?.disconnect();
       bufferSourceRef.current = undefined;
       setBufferSourcePlaying(false);
     };
@@ -125,6 +128,8 @@ export function NativeScene({downloadFileName, renderAudio}: NativeSceneProps) {
     const now = context.currentTime;
 
     source.stop(now);
+
+    setBufferSourcePlaying(false);
   };
 
   const download = () => {
@@ -134,6 +139,41 @@ export function NativeScene({downloadFileName, renderAudio}: NativeSceneProps) {
     const blob = audioBufferToWavBlob(buffer);
     downloadBlob(blob, downloadFileName);
   };
+
+  const progressBarRef = useRef<React.ElementRef<'div'>>(null);
+
+  useEffect(() => {
+    if (!bufferSourcePlaying) return;
+
+    const context = contextRef.current;
+    if (!context) return;
+
+    const buffer = bufferRef.current;
+    if (!buffer) return;
+
+    const progressBar = progressBarRef.current;
+    if (!progressBar) return;
+
+    const startedAt = bufferSourceStartedAtRef.current;
+    const {duration} = buffer;
+
+    let frameHandle: number | undefined;
+
+    const draw = () => {
+      const now = context.currentTime;
+      const progress = (now - startedAt) / duration;
+      progressBar.style.left = `${progress * 100}%`;
+
+      frameHandle = requestAnimationFrame(draw);
+    };
+
+    frameHandle = requestAnimationFrame(draw);
+
+    return () => {
+      if (!frameHandle) return;
+      cancelAnimationFrame(frameHandle);
+    };
+  }, [contextRef, bufferSourcePlaying]);
 
   return (
     <div className='flex flex-col gap-2'>
@@ -156,6 +196,13 @@ export function NativeScene({downloadFileName, renderAudio}: NativeSceneProps) {
         Download
       </Button>
       <div className='relative box-border h-48 w-full border-2 border-white/50'>
+        <div
+          ref={progressBarRef}
+          className={clsx(
+            'absolute h-full w-1 bg-red-500',
+            !bufferSourcePlaying && 'hidden',
+          )}
+        />
         <Canvas ref={canvasRef} />
       </div>
     </div>
