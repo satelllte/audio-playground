@@ -51,15 +51,15 @@ const loop = ({
   duration: number;
   samples: Samples;
 }): void => {
-  const durationHalf = duration / 2;
-  const durationEighth = duration / 8;
+  const duration2 = duration / 2;
+  const duration8 = duration / 8;
 
   // Hi-hat
   [0, 1, 2, 3, 4, 5, 6, 7].forEach((i) => {
     playSample({
       context,
       buffer: samples.hiHat,
-      startAt: startAt + durationEighth * i,
+      startAt: startAt + duration8 * i,
       duration: samples.hiHat.duration,
       gain: i % 2 ? 0.25 : 1.0,
     });
@@ -69,13 +69,13 @@ const loop = ({
   playSample({
     context,
     buffer: samples.snare1,
-    startAt: startAt + durationHalf,
+    startAt: startAt + duration2,
     duration: samples.snare1.duration,
   });
   playSample({
     context,
     buffer: samples.snare2,
-    startAt: startAt + durationHalf,
+    startAt: startAt + duration2,
     duration: samples.snare2.duration,
   });
 };
@@ -91,6 +91,8 @@ const loop4 = ({
   duration: number;
   samples: Samples;
 }): void => {
+  const duration32 = duration / 32;
+
   // Melody
   playSample({
     context,
@@ -98,6 +100,21 @@ const loop4 = ({
     startAt,
     duration,
   });
+
+  // Kick
+  // prettier-ignore
+  [ 0+0,  0+1,  0+6,  0+7,  0+10,
+    16+0, 16+1, 16+6, 16+7, 16+10, 16+13].forEach(
+     (i) => {
+       playSample({
+         context,
+         buffer: samples.kick,
+         startAt: startAt + duration32 * i,
+         duration: samples.kick.duration * 0.5,
+         gain: 0.875,
+       });
+     },
+   );
 };
 
 const playSample = ({
@@ -131,13 +148,14 @@ type Samples = Unpromisify<ReturnType<typeof fetchSamples>>;
 
 const fetchSamples = async (context: BaseAudioContext) => {
   const basePath = '/static/samples';
-  const [hiHat, melodyLoop, snare1, snare2] = await Promise.all([
+  const [hiHat, kick, melodyLoop, snare1, snare2] = await Promise.all([
     fetchAudioFile({path: `${basePath}/hi_hat_1.wav`, context}),
+    fetchAudioFile({path: `${basePath}/kick_1.wav`, context}),
     fetchAudioFile({path: `${basePath}/melody_loop_1.wav`, context}),
     fetchAudioFile({path: `${basePath}/snare_1.wav`, context}),
     fetchAudioFile({path: `${basePath}/snare_2.wav`, context}),
   ]);
-  return {hiHat, melodyLoop, snare1, snare2};
+  return {hiHat, kick, melodyLoop, snare1, snare2};
 };
 
 const fetchAudioFile = async ({
