@@ -167,7 +167,7 @@ const loop4 = ({
     process(source) {
       const highPass = new BiquadFilterNode(context, {
         type: 'highpass',
-        frequency: 425,
+        frequency: 475,
       });
       source.connect(highPass);
       highPass.connect(context.destination);
@@ -175,26 +175,64 @@ const loop4 = ({
   });
 
   // Kick
-  [
-    0 + 0,
-    0 + 1,
-    0 + 6,
-    0 + 7,
-    0 + 10,
-    16 + 0,
-    16 + 1,
-    16 + 6,
-    16 + 7,
-    16 + 10,
-    16 + 13,
-  ].forEach((i) => {
+  [0, 1, 6, 7, 10, 16, 17, 22, 23, 26, 29].forEach((i) => {
+    const _startAt = startAt + duration32 * i;
+    const _duration = Math.min(samples.kick.duration, 0.4);
     playSample({
       context,
       buffer: samples.kick,
-      startAt: startAt + duration32 * i,
-      duration: samples.kick.duration * 0.5,
+      startAt: _startAt,
+      duration: _duration,
       process(source) {
-        const gain = new GainNode(context, {gain: 0.875});
+        const gain = new GainNode(context, {gain: 0.8});
+
+        gain.gain.setValueAtTime(0.8, _startAt + _duration * 0.9);
+        gain.gain.linearRampToValueAtTime(0.0, _startAt + _duration);
+
+        source.connect(gain);
+        gain.connect(context.destination);
+      },
+    });
+  });
+
+  // Bass
+  [
+    {i: 0, durationIndexes: 1, pitchShiftSemitones: 2},
+    {i: 1, durationIndexes: 5, pitchShiftSemitones: 2},
+    {i: 6, durationIndexes: 1, pitchShiftSemitones: 2},
+    {i: 7, durationIndexes: 9, pitchShiftSemitones: 2},
+    {i: 16, durationIndexes: 1, pitchShiftSemitones: 2},
+    {i: 17, durationIndexes: 5, pitchShiftSemitones: 2},
+    {i: 22, durationIndexes: 1, pitchShiftSemitones: 2},
+    {i: 23, durationIndexes: 6, pitchShiftSemitones: 2},
+    {i: 29, durationIndexes: 3, pitchShiftSemitones: 14},
+  ].forEach(({i, durationIndexes, pitchShiftSemitones}) => {
+    const playbackRate = 2 ** (pitchShiftSemitones / 12); // Shifting the note from C3 by X semitones
+    const _startAt = startAt + duration32 * i;
+    const _duration =
+      playbackRate *
+      Math.min(duration32 * durationIndexes, samples.bass.duration);
+    playSample({
+      context,
+      buffer: samples.bass,
+      startAt: _startAt,
+      offset: 0.11,
+      duration: _duration,
+      process(source) {
+        const gain = new GainNode(context);
+        source.playbackRate.value = playbackRate; // Shifting the note from C3 by X semitones
+
+        const sidechainLength = 0.05;
+        const gainMin = 0.0001;
+        const gainMax = 0.75;
+        gain.gain.setValueAtTime(gainMin, _startAt);
+        gain.gain.exponentialRampToValueAtTime(
+          gainMax,
+          _startAt + sidechainLength,
+        );
+        gain.gain.setValueAtTime(gainMax, _startAt + _duration * 0.9);
+        gain.gain.linearRampToValueAtTime(gainMin, _startAt + _duration);
+
         source.connect(gain);
         gain.connect(context.destination);
       },
@@ -206,18 +244,20 @@ const playSample = ({
   context,
   buffer,
   startAt,
+  offset = 0,
   duration,
   process,
 }: {
   context: BaseAudioContext;
   buffer: AudioBuffer;
   startAt: number;
+  offset?: number;
   duration: number;
   process: (source: AudioBufferSourceNode) => void;
 }): AudioBufferSourceNode => {
   const source = new AudioBufferSourceNode(context, {buffer});
   process(source);
-  source.start(startAt, 0, duration);
+  source.start(startAt, offset, duration);
 
   return source;
 };
@@ -226,17 +266,35 @@ type Samples = Unpromisify<ReturnType<typeof fetchSamples>>;
 
 const fetchSamples = async (context: BaseAudioContext) => {
   const basePath = '/static/samples';
-  const [hiHat, kick, melodyLoop, snare1, snare2, snareExtra1, snareExtra2] =
-    await Promise.all([
-      fetchAudioFile({path: `${basePath}/hi_hat_1.wav`, context}),
-      fetchAudioFile({path: `${basePath}/kick_1.wav`, context}),
-      fetchAudioFile({path: `${basePath}/melody_loop_1.wav`, context}),
-      fetchAudioFile({path: `${basePath}/snare_1.wav`, context}),
-      fetchAudioFile({path: `${basePath}/snare_2.wav`, context}),
-      fetchAudioFile({path: `${basePath}/snare_extra_1.wav`, context}),
-      fetchAudioFile({path: `${basePath}/snare_extra_2.wav`, context}),
-    ]);
-  return {hiHat, kick, melodyLoop, snare1, snare2, snareExtra1, snareExtra2};
+  const [
+    bass,
+    hiHat,
+    kick,
+    melodyLoop,
+    snare1,
+    snare2,
+    snareExtra1,
+    snareExtra2,
+  ] = await Promise.all([
+    fetchAudioFile({path: `${basePath}/bass_1.wav`, context}),
+    fetchAudioFile({path: `${basePath}/hi_hat_1.wav`, context}),
+    fetchAudioFile({path: `${basePath}/kick_1.wav`, context}),
+    fetchAudioFile({path: `${basePath}/melody_loop_1.wav`, context}),
+    fetchAudioFile({path: `${basePath}/snare_1.wav`, context}),
+    fetchAudioFile({path: `${basePath}/snare_2.wav`, context}),
+    fetchAudioFile({path: `${basePath}/snare_extra_1.wav`, context}),
+    fetchAudioFile({path: `${basePath}/snare_extra_2.wav`, context}),
+  ]);
+  return {
+    bass,
+    hiHat,
+    kick,
+    melodyLoop,
+    snare1,
+    snare2,
+    snareExtra1,
+    snareExtra2,
+  };
 };
 
 const fetchAudioFile = async ({
