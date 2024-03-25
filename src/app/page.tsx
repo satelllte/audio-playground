@@ -7,6 +7,7 @@ export default function () {
       <Heading level={2}>Scenes:</Heading>
       <div className='flex flex-col gap-1 pt-2'>
         <SceneLink path='/scenes/native/beat' />
+        <SceneLink path='/scenes/native/constant-source' />
         <SceneLink path='/scenes/native/oscillator' />
         <SceneLink path='/scenes/native/stress-test-latency' />
         <SceneLink path='/scenes/tone/beeps' />
