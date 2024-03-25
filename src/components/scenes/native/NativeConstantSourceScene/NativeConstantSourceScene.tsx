@@ -1,7 +1,7 @@
 'use client';
 import {useAudioContextRef} from '@/hooks/useAudioContextRef';
 import {Button} from '@/components/ui/Button';
-import {useEffect, useLayoutEffect, useRef, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 
 export function NativeConstantSourceScene() {
   const [volume, setVolume] = useState<number>(0.75);
@@ -144,32 +144,48 @@ const useConstantSourceNodeRef = (
   options?: ConstantSourceOptions,
   initOptions?: InitOptions,
 ): React.MutableRefObject<ConstantSourceNode | undefined> =>
-  useAudioNodeRef(ConstantSourceNode, contextRef, options, initOptions);
+  useAudioNodeRef(
+    (...args) => new ConstantSourceNode(...args),
+    contextRef,
+    options,
+    initOptions,
+  );
 
 const useGainNodeRef = (
   contextRef: React.MutableRefObject<BaseAudioContext | undefined>,
   options?: GainOptions,
   initOptions?: InitOptions,
 ): React.MutableRefObject<GainNode | undefined> =>
-  useAudioNodeRef(GainNode, contextRef, options, initOptions);
+  useAudioNodeRef(
+    (...args) => new GainNode(...args),
+    contextRef,
+    options,
+    initOptions,
+  );
 
 const useOscillatorNodeRef = (
   contextRef: React.MutableRefObject<BaseAudioContext | undefined>,
   options?: OscillatorOptions,
   initOptions?: InitOptions,
 ): React.MutableRefObject<OscillatorNode | undefined> =>
-  useAudioNodeRef(OscillatorNode, contextRef, options, initOptions);
+  useAudioNodeRef(
+    (...args) => new OscillatorNode(...args),
+    contextRef,
+    options,
+    initOptions,
+  );
 
 type InitOptions = {skip: boolean};
 const useAudioNodeRef = <
   TNode extends AudioNode, // eslint-disable-line @typescript-eslint/naming-convention
   TOptions extends AudioNodeOptions | ConstantSourceOptions, // eslint-disable-line @typescript-eslint/naming-convention
 >(
-  Constructor: new (context: BaseAudioContext, options?: TOptions) => TNode,
+  constructorFn: (context: BaseAudioContext, options?: TOptions) => TNode,
   contextRef: React.MutableRefObject<BaseAudioContext | undefined>,
   options?: TOptions,
   initOptions?: InitOptions,
 ): React.MutableRefObject<TNode | undefined> => {
+  const constructorFnRef = useRef(constructorFn);
   const nodeRef = useRef<TNode>();
   const optionsRef = useRef<TOptions | undefined>(options);
 
@@ -184,15 +200,16 @@ const useAudioNodeRef = <
       throw new Error('Audio context is not set in contextRef');
     }
 
+    const constructorFn = constructorFnRef.current;
     const options = optionsRef.current;
 
-    nodeRef.current = new Constructor(context, options);
+    nodeRef.current = constructorFn(context, options);
 
     return () => {
       nodeRef.current?.disconnect();
       nodeRef.current = undefined;
     };
-  }, [Constructor, contextRef, shouldSkip]);
+  }, [constructorFnRef, contextRef, shouldSkip]);
 
   return nodeRef;
 };
